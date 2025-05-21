@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Genesis Frontier</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      background: linear-gradient(to bottom, #f0fdf4, #ecfdf5);
+      overflow: hidden;
+    }
+    .game-container {
+      width: 100vw;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    .main-content {
+      display: flex;
+      flex: 1;
+      overflow: hidden;
+    }
+    .tab-content {
+      flex: 2;
+      overflow-y: auto;
+      padding: 1rem;
+    }
+    .sidebar {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      border-left: 1px solid #e5e7eb;
+    }
+    @media (max-width: 768px) {
+      .main-content {
+        flex-direction: column;
+      }
+      .sidebar {
+        border-left: none;
+        border-top: 1px solid #e5e7eb;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    function GenesisFrontier() {
+      const [inventory, setInventory] = useState([]);
+      const [discoveredSpecies, setDiscoveredSpecies] = useState([
+        { id: 'sp1', name: 'Helix Beetle', traits: ['Hard Shell', 'Fast Growth'], parents: [], discovered: true },
+        { id: 'sp2', name: 'Ribo Worm', traits: ['Radiation Resistance'], parents: [], discovered: true }
+      ]);
+      const [activeTab, setActiveTab] = useState('collect');
+      const [equippedItems, setEquippedItems] = useState([]);
+      const [discoveryLog, setDiscoveryLog] = useState([]);
+
+      const geneticMaterials = [
+        { id: 'dna1', name: 'Helix Strand', type: 'DNA', rarity: 'common', traits: ['Fast Growth'] },
+        { id: 'rna1', name: 'Ribozyme', type: 'RNA', rarity: 'uncommon', traits: ['Radiation Resistance'] },
+        { id: 'protein1', name: 'Keratin', type: 'Protein', rarity: 'common', traits: ['Hard Shell'] },
+        { id: 'plasmid1', name: 'F-Plasmid', type: 'Plasmid', rarity: 'rare', traits: ['Conjugation'] },
+        { id: 'dna2', name: 'Telomere', type: 'DNA', rarity: 'rare', traits: ['Longevity'] },
+        { id: 'rna2', name: 'siRNA', type: 'RNA', rarity: 'legendary', traits: ['Gene Silencing'] },
+      ];
+
+      const collectMaterial = () => {
+        const randomIndex = Math.floor(Math.random() * geneticMaterials.length);
+        const newMaterial = geneticMaterials[randomIndex];
+        setInventory([...inventory, newMaterial]);
+        addToLog(`Discovered ${newMaterial.name} (${newMaterial.type})`);
+      };
+
+      const craftSpecies = () => {
+        if (equippedItems.length < 2) {
+          addToLog('Need at least 2 equipped items to craft a new species');
+          return;
+        }
+
+        const materials = inventory.filter(m => equippedItems.includes(m.id));
+        const newTraits = materials.flatMap(m => m.traits);
+        const parentNames = materials.map(m => m.name);
+
+        const uniqueTraits = [...new Set(newTraits)];
+        const newSpecies = {
+          id: `sp${discoveredSpecies.length + 3}`,
+          name: generateSpeciesName(materials),
+          traits: uniqueTraits,
+          parents: parentNames,
+          discovered: true
+        };
+
+        setDiscoveredSpecies([...discoveredSpecies, newSpecies]);
+        setInventory(inventory.filter(m => !equippedItems.includes(m.id)));
+        setEquippedItems([]);
+        addToLog(`Created new species: ${newSpecies.name}! Traits: ${uniqueTraits.join(', ')}`);
+      };
+
+      const toggleEquipItem = (id) => {
+        setEquippedItems(prev => 
+          prev.includes(id) 
+            ? prev.filter(m => m !== id)
+            : [...prev, id]
+        );
+      };
+
+      const generateSpeciesName = (materials) => {
+        const prefixes = ['Helix', 'Ribo', 'Telo', 'Plasmid', 'Kera', 'Nucleo'];
+        const suffixes = ['Beast', 'Mite', 'Worm', 'Spore', 'Pod', 'Phage'];
+        
+        const typeCount = materials.reduce((acc, m) => {
+          acc[m.type] = (acc[m.type] || 0) + 1;
+          return acc;
+        }, {});
+
+        const dominantType = Object.entries(typeCount).sort((a, b) => b[1] - a[1])[0][0];
+        const prefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+        const suffix = suffixes[Math.floor(Math.random() * suffixes.length)];
+
+        return `${prefix} ${suffix} (${dominantType})`;
+      };
+
+      const addToLog = (message) => {
+        setDiscoveryLog([`[${new Date().toLocaleTimeString()}] ${message}`, ...discoveryLog].slice(0, 10));
+      };
+
+      return (
+        <div className="game-container">
+          <div className="bg-blue-600 text-white p-4">
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 15c6.667-6 13.333 0 20-6"/>
+                <path d="M9 22c1.798-1.998 2.518-3.995 2.807-5.993"/>
+                <path d="M15 2c-1.798 1.998-2.518 3.995-2.807 5.993"/>
+                <path d="m17 6-2.5-2.5"/>
+                <path d="m14 8-1-1"/>
+                <path d="m7 18-2.5 2.5"/>
+                <path d="m3.5 14.5.5.5"/>
+                <path d="m20 9 .5.5"/>
+                <path d="m6.5 12.5 1 1"/>
+                <path d="m16.5 10.5 1 1"/>
+                <path d="m10 16 1.5 1.5"/>
+              </svg>
+              Genesis Frontier
+            </h1>
+          </div>
+
+          <div className="flex border-b">
+            <button 
+              onClick={() => setActiveTab('collect')}
+              className={`px-4 py-2 font-medium ${activeTab === 'collect' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+            >
+              Collect
+            </button>
+            <button 
+              onClick={() => setActiveTab('equip')}
+              className={`px-4 py-2 font-medium ${activeTab === 'equip' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+            >
+              Equip
+            </button>
+            <button 
+              onClick={() => setActiveTab('craft')}
+              className={`px-4 py-2 font-medium ${activeTab === 'craft' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+            >
+              Craft
+            </button>
+            <button 
+              onClick={() => setActiveTab('species')}
+              className={`px-4 py-2 font-medium ${activeTab === 'species' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+            >
+              Species
+            </button>
+          </div>
+
+          <div className="main-content">
+            <div className="tab-content">
+              {activeTab === 'collect' && (
+                <div>
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 className="text-xl font-semibold">Genetic Material Collection</h2>
+                    <button 
+                      onClick={collectMaterial}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="12" y1="5" x2="12" y2="19"/>
+                        <line x1="5" y1="12" x2="19" y2="12"/>
+                      </svg>
+                      Collect Sample
+                    </button>
+                  </div>
+
+                  {inventory.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No genetic materials collected yet. Click "Collect Sample" to begin.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {inventory.map((material) => (
+                        <div 
+                          key={material.id}
+                          className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                            equippedItems.includes(material.id)
+                              ? 'ring-2 ring-blue-500 bg-blue-50'
+                              : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => activeTab === 'equip' && toggleEquipItem(material.id)}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-medium">{material.name}</h3>
+                              <p className="text-sm text-gray-500">{material.type}</p>
+                            </div>
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              material.rarity === 'common' ? 'bg-gray-100 text-gray-800' :
+                              material.rarity === 'uncommon' ? 'bg-blue-100 text-blue-800' :
+                              material.rarity === 'rare' ? 'bg-purple-100 text-purple-800' :
+                              'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {material.rarity}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {material.traits.map(trait => (
+                              <span key={trait} className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                {trait}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'equip' && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">Equipment Station</h2>
+                  <p className="text-sm text-gray-600 mb-4">
+                    Click items to equip/unequip them. Equipped items will be used when creating new species.
+                  </p>
+
+                  {inventory.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No items in inventory. Collect materials first.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {inventory.map((material) => (
+                        <div 
+                          key={material.id}
+                          className={`border rounded-lg p-4 cursor-pointer transition-all ${
+                            equippedItems.includes(material.id)
+                              ? 'ring-2 ring-blue-500 bg-blue-50'
+                              : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => toggleEquipItem(material.id)}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h3 className="font-medium">{material.name}</h3>
+                              <p className="text-sm text-gray-500">{material.type}</p>
+                            </div>
+                            {equippedItems.includes(material.id) && (
+                              <span className="px-2 py-1 text-xs bg-blue-500 text-white rounded-full">
+                                Equipped
+                              </span>
+                            )}
+                          </div>
+                          <div className="mt-2 flex flex-wrap gap-1">
+                            {material.traits.map(trait => (
+                              <span key={trait} className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded">
+                                {trait}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'craft' && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">Bio-Crafting Station</h2>
+                  <div className="mb-4">
+                    <p className="text-sm text-gray-600 mb-2">
+                      Create new species using your equipped items
+                    </p>
+                    <button
+                      onClick={craftSpecies}
+                      disabled={equippedItems.length < 2}
+                      className={`px-4 py-2 rounded-md flex items-center gap-2 ${
+                        equippedItems.length < 2
+                          ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                          : 'bg-green-600 text-white hover:bg-green-700'
+                      }`}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M10.68 13.31a16 16 0 0 0 3.41 2.6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7 2 2 0 0 1 1.72 2v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.42 19.42 0 0 1-3.33-2.67m-2.67-3.34a19.79 19.79 0 0 1-3.07-8.63A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91"/>
+                        <line x1="23" y1="1" x2="1" y2="23"/>
+                      </svg>
+                      Create Species
+                    </button>
+                  </div>
+
+                  {equippedItems.length > 0 && (
+                    <div className="bg-blue-50 p-4 rounded-lg mb-4">
+                      <h3 className="font-medium mb-2">Equipped Items ({equippedItems.length})</h3>
+                      <div className="flex flex-wrap gap-2">
+                        {inventory
+                          .filter(m => equippedItems.includes(m.id))
+                          .map(material => (
+                            <div 
+                              key={material.id}
+                              className="text-sm bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center"
+                            >
+                              {material.name}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleEquipItem(material.id);
+                                }}
+                                className="ml-2 text-blue-600 hover:text-blue-800"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'species' && (
+                <div>
+                  <h2 className="text-xl font-semibold mb-4">Discovered Species</h2>
+                  {discoveredSpecies.length === 0 ? (
+                    <div className="text-center py-8 text-gray-500">
+                      No species discovered yet. Collect materials and craft new species.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {discoveredSpecies.map((species) => (
+                        <div key={species.id} className="border rounded-lg p-4">
+                          <h3 className="font-medium">{species.name}</h3>
+                          {species.parents.length > 0 && (
+                            <p className="text-xs text-gray-500 mt-1">
+                              Created from: {species.parents.join(', ')}
+                            </p>
+                          )}
+                          <div className="mt-3 flex flex-wrap gap-1">
+                            {species.traits.map(trait => (
+                              <span key={trait} className="text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded">
+                                {trait}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="sidebar">
+              <div className="bg-white rounded-lg shadow p-4 mb-4">
+                <h2 className="font-semibold mb-3">Inventory Summary</h2>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span className="text-sm">DNA Samples:</span>
+                    <span className="font-medium">{inventory.filter(m => m.type === 'DNA').length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">RNA Samples:</span>
+                    <span className="font-medium">{inventory.filter(m => m.type === 'RNA').length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Proteins:</span>
+                    <span className="font-medium">{inventory.filter(m => m.type === 'Protein').length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-sm">Plasmids:</span>
+                    <span className="font-medium">{inventory.filter(m => m.type === 'Plasmid').length}</span>
+                  </div>
+                  <div className="pt-2 mt-2 border-t">
+                    <div className="flex justify-between font-medium">
+                      <span>Total:</span>
+                      <span>{inventory.length}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-lg shadow p-4">
+                <h2 className="font-semibold mb-3">Discovery Log</h2>
+                <div className="text-sm space-y-2 max-h-60 overflow-y-auto">
+                  {discoveryLog.length === 0 ? (
+                    <p className="text-gray-500">No discoveries yet</p>
+                  ) : (
+                    discoveryLog.map((log, i) => (
+                      <div key={i} className="py-1 border-b border-gray-100 last:border-0">
+                        {log}
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<GenesisFrontier />);
+  </script>
+</body>
+</html>
