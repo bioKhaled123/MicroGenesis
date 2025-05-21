@@ -1,3 +1,5 @@
+
+CodePreview
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -50,57 +52,233 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const { useState } = React;
+    const { useState, useEffect } = React;
 
+    // ========================
+    // AUTHENTICATION SYSTEM
+    // ========================
+    function useAuth() {
+      const [user, setUser] = useState(null);
+      const [loading, setLoading] = useState(true);
+
+      // Simulate checking localStorage for existing session
+      useEffect(() => {
+        const savedUser = localStorage.getItem('genesisFrontierUser');
+        if (savedUser) {
+          setUser(JSON.parse(savedUser));
+        }
+        setLoading(false);
+      }, []);
+
+      const signup = (username, password) => {
+        return new Promise((resolve) => {
+          setTimeout(() => {
+            const newUser = {
+              id: Date.now(),
+              username,
+              inventory: [],
+              discoveredSpecies: getBaseSpecies(),
+              lastLogin: new Date().toISOString()
+            };
+            localStorage.setItem('genesisFrontierUser', JSON.stringify(newUser));
+            setUser(newUser);
+            resolve(newUser);
+          }, 500);
+        });
+      };
+
+      const login = (username, password) => {
+        return new Promise((resolve, reject) => {
+          setTimeout(() => {
+            // In a real app, this would check against a database
+            const savedUser = localStorage.getItem('genesisFrontierUser');
+            if (savedUser) {
+              const parsedUser = JSON.parse(savedUser);
+              if (parsedUser.username === username) {
+                setUser(parsedUser);
+                resolve(parsedUser);
+              } else {
+                reject("User not found");
+              }
+            } else {
+              reject("No users exist yet");
+            }
+          }, 500);
+        });
+      };
+
+      const logout = () => {
+        localStorage.removeItem('genesisFrontierUser');
+        setUser(null);
+      };
+
+      const saveGame = (gameData) => {
+        if (!user) return;
+        const updatedUser = {
+          ...user,
+          ...gameData,
+          lastSave: new Date().toISOString()
+        };
+        localStorage.setItem('genesisFrontierUser', JSON.stringify(updatedUser));
+        setUser(updatedUser);
+      };
+
+      return { user, loading, signup, login, logout, saveGame };
+    }
+
+    // ========================
+    // GAME DATA
+    // ========================
+    const getBaseSpecies = () => [
+      { id: 'sp1', name: 'Helix Beetle', traits: ['Hard Shell', 'Fast Growth'], parents: [], discovered: true },
+      { id: 'sp2', name: 'Ribo Worm', traits: ['Radiation Resistance'], parents: [], discovered: true },
+      { id: 'sp3', name: 'Plasmid Pod', traits: ['Conjugation'], parents: [], discovered: true }
+    ];
+
+    const geneticMaterialTypes = {
+      DNA: [
+        'Helix Strand', 'Telomere', 'Chromatin Fiber', 'Nucleosome', 'Histone', 
+        'Centromere', 'Plasmid', 'Mitochondrial DNA', 'Chloroplast DNA', 'Satellite DNA',
+        'Microsatellite', 'Minisatellite', 'Transposon', 'Retrotransposon', 'Intron',
+        'Exon', 'Promoter', 'Enhancer', 'Silencer', 'Operator'
+      ],
+      RNA: [
+        'mRNA', 'tRNA', 'rRNA', 'miRNA', 'siRNA', 'snRNA', 'snoRNA', 'lncRNA',
+        'Ribozyme', 'Aptamer', 'Riboswitch', 'Viral RNA', 'Retroviral RNA',
+        'Circular RNA', 'Antisense RNA', 'Guide RNA', 'CRISPR RNA', 'Shine-Dalgarno',
+        'PolyA Tail', 'Spliceosome RNA'
+      ],
+      Protein: [
+        'Keratin', 'Collagen', 'Hemoglobin', 'Myoglobin', 'Actin', 'Myosin', 'Tubulin',
+        'Enzyme', 'Antibody', 'Receptor', 'Channel Protein', 'Carrier Protein',
+        'Hormone', 'Cytokine', 'Growth Factor', 'Transcription Factor', 'Chaperone',
+        'Prion', 'Amyloid', 'Peptide'
+      ],
+      Plasmid: [
+        'F-Plasmid', 'R-Plasmid', 'Col-Plasmid', 'Ti-Plasmid', 'Virulence Plasmid',
+        'Metabolic Plasmid', 'Degradative Plasmid', 'Conjugative Plasmid',
+        'Non-Conjugative Plasmid', 'Cryptic Plasmid', 'Suicide Plasmid',
+        'Expression Plasmid', 'Cloning Plasmid', 'Shuttle Plasmid', 'Cosmid',
+        'Phagemid', 'Yeast Plasmid', 'Bacterial Artificial Chromosome',
+        'Yeast Artificial Chromosome', 'Human Artificial Chromosome'
+      ]
+    };
+
+    const traits = [
+      'Fast Growth', 'Radiation Resistance', 'Hard Shell', 'Conjugation', 'Longevity',
+      'Gene Silencing', 'Photosynthesis', 'Bioluminescence', 'Acid Resistance',
+      'Heat Resistance', 'Cold Resistance', 'Toxin Production', 'Antibiotic Resistance',
+      'Regeneration', 'Camouflage', 'Flight', 'Swimming', 'Burrowing', 'Venomous',
+      'Symbiotic', 'Parasitic', 'Predatory', 'Filter Feeding', 'Photosensitive',
+      'Electric Charge', 'Magnetic Field', 'Invisibility', 'Cloning', 'Mind Control',
+      'Teleportation'
+    ];
+
+    const generateGeneticMaterials = () => {
+      const materials = [];
+      let id = 1;
+      
+      Object.entries(geneticMaterialTypes).forEach(([type, names]) => {
+        names.forEach(name => {
+          const rarity = Math.random() > 0.9 ? 'legendary' : 
+                        Math.random() > 0.7 ? 'rare' : 
+                        Math.random() > 0.4 ? 'uncommon' : 'common';
+          
+          const materialTraits = [];
+          const traitCount = rarity === 'legendary' ? 3 : 
+                           rarity === 'rare' ? 2 : 1;
+          
+          for (let i = 0; i < traitCount; i++) {
+            const randomTrait = traits[Math.floor(Math.random() * traits.length)];
+            if (!materialTraits.includes(randomTrait)) {
+              materialTraits.push(randomTrait);
+            }
+          }
+          
+          materials.push({
+            id: `mat${id++}`,
+            name,
+            type,
+            rarity,
+            traits: materialTraits
+          });
+        });
+      });
+      
+      return materials;
+    };
+
+    const allGeneticMaterials = generateGeneticMaterials();
+
+    // ========================
+    // MAIN GAME COMPONENT
+    // ========================
     function GenesisFrontier() {
-      const [inventory, setInventory] = useState([]);
-      const [discoveredSpecies, setDiscoveredSpecies] = useState([
-        { id: 'sp1', name: 'Helix Beetle', traits: ['Hard Shell', 'Fast Growth'], parents: [], discovered: true },
-        { id: 'sp2', name: 'Ribo Worm', traits: ['Radiation Resistance'], parents: [], discovered: true }
-      ]);
+      const { user, loading, signup, login, logout, saveGame } = useAuth();
       const [activeTab, setActiveTab] = useState('collect');
       const [equippedItems, setEquippedItems] = useState([]);
       const [discoveryLog, setDiscoveryLog] = useState([]);
+      const [authView, setAuthView] = useState('login'); // 'login' or 'signup'
+      const [authError, setAuthError] = useState('');
+      const [authLoading, setAuthLoading] = useState(false);
+      
+      // Game state is managed through the user object
+      const inventory = user?.inventory || [];
+      const discoveredSpecies = user?.discoveredSpecies || getBaseSpecies();
 
-      const geneticMaterials = [
-        { id: 'dna1', name: 'Helix Strand', type: 'DNA', rarity: 'common', traits: ['Fast Growth'] },
-        { id: 'rna1', name: 'Ribozyme', type: 'RNA', rarity: 'uncommon', traits: ['Radiation Resistance'] },
-        { id: 'protein1', name: 'Keratin', type: 'Protein', rarity: 'common', traits: ['Hard Shell'] },
-        { id: 'plasmid1', name: 'F-Plasmid', type: 'Plasmid', rarity: 'rare', traits: ['Conjugation'] },
-        { id: 'dna2', name: 'Telomere', type: 'DNA', rarity: 'rare', traits: ['Longevity'] },
-        { id: 'rna2', name: 'siRNA', type: 'RNA', rarity: 'legendary', traits: ['Gene Silencing'] },
-      ];
+      // Save game every 30 seconds
+      useEffect(() => {
+        if (!user) return;
+        const saveInterval = setInterval(() => {
+          saveGame({
+            inventory,
+            discoveredSpecies
+          });
+          addToLog('Game auto-saved');
+        }, 30000);
+        return () => clearInterval(saveInterval);
+      }, [user, inventory, discoveredSpecies]);
 
       const collectMaterial = () => {
-        const randomIndex = Math.floor(Math.random() * geneticMaterials.length);
-        const newMaterial = geneticMaterials[randomIndex];
-        setInventory([...inventory, newMaterial]);
-        addToLog(`Discovered ${newMaterial.name} (${newMaterial.type})`);
+        if (!user) return;
+        
+        // Get random material (weighted by rarity)
+        const materialPool = [...allGeneticMaterials];
+        const randomMaterial = materialPool[Math.floor(Math.random() * materialPool.length)];
+        
+        const newInventory = [...inventory, randomMaterial];
+        saveGame({ inventory: newInventory });
+        addToLog(`Discovered ${randomMaterial.name} (${randomMaterial.type})`);
       };
 
       const craftSpecies = () => {
-        if (equippedItems.length < 2) {
+        if (!user || equippedItems.length < 2) {
           addToLog('Need at least 2 equipped items to craft a new species');
           return;
         }
 
         const materials = inventory.filter(m => equippedItems.includes(m.id));
-        const newTraits = materials.flatMap(m => m.traits);
+        const newTraits = [...new Set(materials.flatMap(m => m.traits))];
         const parentNames = materials.map(m => m.name);
 
-        const uniqueTraits = [...new Set(newTraits)];
         const newSpecies = {
-          id: `sp${discoveredSpecies.length + 3}`,
+          id: `sp${Date.now()}`,
           name: generateSpeciesName(materials),
-          traits: uniqueTraits,
+          traits: newTraits,
           parents: parentNames,
           discovered: true
         };
 
-        setDiscoveredSpecies([...discoveredSpecies, newSpecies]);
-        setInventory(inventory.filter(m => !equippedItems.includes(m.id)));
+        const newDiscoveredSpecies = [...discoveredSpecies, newSpecies];
+        const newInventory = inventory.filter(m => !equippedItems.includes(m.id));
+        
+        saveGame({
+          inventory: newInventory,
+          discoveredSpecies: newDiscoveredSpecies
+        });
+        
         setEquippedItems([]);
-        addToLog(`Created new species: ${newSpecies.name}! Traits: ${uniqueTraits.join(', ')}`);
+        addToLog(`Created new species: ${newSpecies.name}! Traits: ${newTraits.join(', ')}`);
       };
 
       const toggleEquipItem = (id) => {
@@ -112,8 +290,17 @@
       };
 
       const generateSpeciesName = (materials) => {
-        const prefixes = ['Helix', 'Ribo', 'Telo', 'Plasmid', 'Kera', 'Nucleo'];
-        const suffixes = ['Beast', 'Mite', 'Worm', 'Spore', 'Pod', 'Phage'];
+        const prefixes = [
+          'Helix', 'Ribo', 'Telo', 'Plasmid', 'Kera', 'Nucleo', 'Geno', 'Bio', 
+          'Xeno', 'Meta', 'Ultra', 'Hyper', 'Mega', 'Micro', 'Nano', 'Pico',
+          'Quantum', 'Neo', 'Cosmo', 'Astro'
+        ];
+        
+        const suffixes = [
+          'Beast', 'Mite', 'Worm', 'Spore', 'Pod', 'Phage', 'Zoid', 'Morph',
+          'Vore', 'Plex', 'Tron', 'Drone', 'Bot', 'Naut', 'Saur', 'Pede',
+          'Slime', 'Bloom', 'Shroom', 'Vine'
+        ];
         
         const typeCount = materials.reduce((acc, m) => {
           acc[m.type] = (acc[m.type] || 0) + 1;
@@ -128,12 +315,112 @@
       };
 
       const addToLog = (message) => {
-        setDiscoveryLog([`[${new Date().toLocaleTimeString()}] ${message}`, ...discoveryLog].slice(0, 10));
+        setDiscoveryLog(prev => [
+          `[${new Date().toLocaleTimeString()}] ${message}`,
+          ...prev
+        ].slice(0, 15));
       };
+
+      const handleAuthSubmit = async (e) => {
+        e.preventDefault();
+        setAuthLoading(true);
+        setAuthError('');
+        
+        const formData = new FormData(e.target);
+        const username = formData.get('username');
+        const password = formData.get('password');
+        
+        try {
+          if (authView === 'signup') {
+            await signup(username, password);
+          } else {
+            await login(username, password);
+          }
+        } catch (err) {
+          setAuthError(err.toString());
+        } finally {
+          setAuthLoading(false);
+        }
+      };
+
+      if (loading) {
+        return (
+          <div className="flex items-center justify-center h-screen">
+            <div className="text-xl">Loading...</div>
+          </div>
+        );
+      }
+
+      if (!user) {
+        return (
+          <div className="flex items-center justify-center h-screen bg-gray-50">
+            <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+              <h1 className="text-2xl font-bold text-center mb-6">
+                Genesis Frontier
+              </h1>
+              
+              <div className="flex border-b mb-6">
+                <button
+                  onClick={() => setAuthView('login')}
+                  className={`flex-1 py-2 font-medium ${authView === 'login' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+                >
+                  Login
+                </button>
+                <button
+                  onClick={() => setAuthView('signup')}
+                  className={`flex-1 py-2 font-medium ${authView === 'signup' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`}
+                >
+                  Sign Up
+                </button>
+              </div>
+              
+              <form onSubmit={handleAuthSubmit}>
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1" htmlFor="username">
+                    Username
+                  </label>
+                  <input
+                    id="username"
+                    name="username"
+                    type="text"
+                    required
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
+                
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-1" htmlFor="password">
+                    Password
+                  </label>
+                  <input
+                    id="password"
+                    name="password"
+                    type="password"
+                    required
+                    className="w-full px-3 py-2 border rounded-md"
+                  />
+                </div>
+                
+                {authError && (
+                  <div className="mb-4 text-red-500 text-sm">{authError}</div>
+                )}
+                
+                <button
+                  type="submit"
+                  disabled={authLoading}
+                  className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {authLoading ? 'Processing...' : authView === 'login' ? 'Login' : 'Create Account'}
+                </button>
+              </form>
+            </div>
+          </div>
+        );
+      }
 
       return (
         <div className="game-container">
-          <div className="bg-blue-600 text-white p-4">
+          <div className="bg-blue-600 text-white p-4 flex justify-between items-center">
             <h1 className="text-2xl font-bold flex items-center gap-2">
               <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M2 15c6.667-6 13.333 0 20-6"/>
@@ -150,6 +437,15 @@
               </svg>
               Genesis Frontier
             </h1>
+            <div className="flex items-center gap-4">
+              <span className="text-sm">Welcome, {user.username}</span>
+              <button 
+                onClick={logout}
+                className="text-sm bg-white text-blue-600 px-3 py-1 rounded-md hover:bg-gray-100"
+              >
+                Logout
+              </button>
+            </div>
           </div>
 
           <div className="flex border-b">
@@ -352,8 +648,8 @@
                   ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                       {discoveredSpecies.map((species) => (
-                        <div key={species.id} className="border rounded-lg p-4">
-                          <h3 className="font-medium">{species.name}</h3>
+                        <div key={species.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                          <h3 className="font-medium text-lg">{species.name}</h3>
                           {species.parents.length > 0 && (
                             <p className="text-xs text-gray-500 mt-1">
                               Created from: {species.parents.join(', ')}
@@ -404,7 +700,15 @@
               </div>
 
               <div className="bg-white rounded-lg shadow p-4">
-                <h2 className="font-semibold mb-3">Discovery Log</h2>
+                <div className="flex justify-between items-center mb-3">
+                  <h2 className="font-semibold">Discovery Log</h2>
+                  <button 
+                    onClick={() => saveGame({ inventory, discoveredSpecies })}
+                    className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded hover:bg-green-200"
+                  >
+                    Save Game
+                  </button>
+                </div>
                 <div className="text-sm space-y-2 max-h-60 overflow-y-auto">
                   {discoveryLog.length === 0 ? (
                     <p className="text-gray-500">No discoveries yet</p>
